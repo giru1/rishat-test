@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Список товаров{% endblock %}
+
+{% block content %}
+    <h1 class="center-align">Товары</h1>
+    <div class="row">
+        {% for item in items %}
+            <div class="col s12 m6 l4">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title">{{ item.name }}</span>
+                        <p>{{ item.description }}</p>
+                        <p>Цена: ${{ item.price }}</p>
+                    </div>
+                    <div class="card-action">
+                        <a href="{% url 'item_detail' item.id %}" class="btn">Посмотреть товар</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
