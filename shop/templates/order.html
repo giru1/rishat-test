@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Итог заказа{% endblock %}
+
+{% block content %}
+    <h1 class="center-align">Итог заказа</h1>
+    <h2>Выбранные товары:</h2>
+    <ul id="item-list" class="collection">
+        {% for item in items %}
+            <li id="item-{{ item.id }}" class="collection-item">
+                {{ item.name }} - $<span class="item-price">{{ item.price }}</span>
+                <button type="button" class="remove-item btn red" data-item-id="{{ item.id }}">Удалить</button>
+            </li>
+        {% endfor %}
+    </ul>
+    <h3>Итоговая сумма: $<span id="total-price">{{ total_price }}</span></h3>
+
+    <h3>Применить скидку:</h3>
+    <form id="discount-form">
+        <select id="discount-select" style="display: block">
+            <option value="0">Выберите скидку</option>
+            {% for discount in discounts %}
+                <option value="{{ discount.amount }}">{{ discount.code }} - ${{ discount.amount }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <h3>Применить налог:</h3>
+    <form id="tax-form">
+        <select id="tax-select" style="display: block">
+            <option value="0">Выберите налог</option>
+            {% for tax in taxes %}
+                <option value="{{ tax.rate }}">{{ tax.name }} - {{ tax.rate }}%</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <h3>Итоговая сумма с учетом скидки и налога: $<span id="final-total">{{ total_price }}</span></h3>
+<hr>
+    <h3>Данные вашей карты</h3>
+    <div id="card-element" style="height: 300px; width: 300px; margin-top: 20px; background: #ccc; border: 1px solid #000;"></div>
+    <div id="card-errors" role="alert"></div>
+    <button id="pay-button" class="btn green">Оплатить</button>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        let totalPrice = parseFloat(document.getElementById('total-price').innerText);
+        let discount = 0;
+        let taxRate = 0;
+        let orderId = {{ order_id }};
+        const csrfToken = '{{ csrf_token }}';
+
+        function updateFinalTotal() {
+            const finalTotal = totalPrice - discount + (totalPrice * (taxRate / 100));
+            document.getElementById('final-total').innerText = finalTotal.toFixed(2);
+        }
+
+        document.getElementById('discount-select').addEventListener('change', (event) => {
+            discount = parseFloat(event.target.value) || 0;
+            updateFinalTotal();
+        });
+
+        document.getElementById('tax-select').addEventListener('change', (event) => {
+            taxRate = parseFloat(event.target.value) || 0;
+            updateFinalTotal();
+        });
+
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const itemId = event.target.getAttribute('data-item-id');
+                const itemElement = document.getElementById(`item-${itemId}`);
+                if (itemElement) {
+                    const itemPrice = parseFloat(itemElement.querySelector('.item-price').innerText);
+                    itemElement.remove();
+                    totalPrice -= itemPrice;
+                    document.getElementById('total-price').innerText = totalPrice.toFixed(2);
+                    updateFinalTotal();
+                }
+            });
+        });
+
+        document.getElementById('pay-button').addEventListener('click', async () => {
+            const response = await fetch(`/create-payment-intent/${orderId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({
+                    amount: totalPrice * 100, // Сумма в центах
+                    currency: 'usd',
+                }),
+            });
+
+
+
+            const { client_secret } = await response.json();
+
+            const stripe = Stripe('pk_test_51QwmYxP1QaLd00worLGNFHhSZGWmAP0csUytdAKRiS15DRmyPMPKM2zKJA7CySgorHHXtLirC9zSM5EV1oH0GsJJ00O5oaE4U9');
+            const elements = stripe.elements();
+            const cardElement = elements.create('card');
+            cardElement.mount('#card-element');
+
+            const { error } = await stripe.confirmCardPayment(client_secret, {
+                payment_method: {
+                    card: cardElement,
+                }
+            });
+
+            if (!response.ok) {
+               const errorText = await response.text(); // Получаем текст ошибки
+               console.error('Ошибка:', response.status, errorText);
+               alert('Ошибка при создании Payment Intent: ' + response.status);
+               return;
+            }
+
+            // if (error) {
+            //     console.error('Payment failed:', error);
+            //     alert('Ошибка при оплате: ' + error.message);
+            // } else {
+            //     alert('Оплата прошла успешно!');
+            // }
+        });
+    </script>
+{% endblock %}

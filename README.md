@@ -46,6 +46,7 @@ ALLOWED_HOSTS="*"
 Примените миграции для создания необходимых таблиц в базе данных:
 
 ```bash
+python manage.py makemigrations
 python manage.py migrate
 ```
 

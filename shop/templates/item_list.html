@@ -1,23 +1,44 @@
+<!-- templates/item_list.html -->
 {% extends 'base.html' %}
 
 {% block title %}Список товаров{% endblock %}
 
 {% block content %}
     <h1 class="center-align">Товары</h1>
-    <div class="row">
-        {% for item in items %}
-            <div class="col s12 m6 l4">
-                <div class="card">
-                    <div class="card-content">
-                        <span class="card-title">{{ item.name }}</span>
-                        <p>{{ item.description }}</p>
-                        <p>Цена: ${{ item.price }}</p>
-                    </div>
-                    <div class="card-action">
-                        <a href="{% url 'item_detail' item.id %}" class="btn">Посмотреть товар</a>
+    <form id="order-form" method="POST" action="{% url 'create_order' %}">
+        {% csrf_token %}
+        <div class="row">
+            {% for item in items %}
+                <div class="col s12 m6 l4">
+                    <div class="card">
+                        <div class="card-content">
+                            <span class="card-title">{{ item.name }}</span>
+                            <p>{{ item.description }}</p>
+                            <p>Цена: ${{ item.price }}</p>
+                            <div class="card-action">
+                                <a href="{% url 'item_detail' item.id %}" class="btn">Посмотреть товар</a>
+                            </div>
+                            <label>
+                                <input type="checkbox" name="item_ids" value="{{ item.id }}" class="item-checkbox" />
+                                <span>Выбрать</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn" id="order-button" disabled>Сделать заказ</button>
+    </form>
+
+    <script>
+        // JavaScript для активации кнопки "Сделать заказ"
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        const orderButton = document.getElementById('order-button');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                orderButton.disabled = !Array.from(checkboxes).some(i => i.checked);
+            });
+        });
+    </script>
 {% endblock %}
