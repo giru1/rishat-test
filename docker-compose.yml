@@ -6,6 +6,17 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - .:/app    # Монтирование текущей директории в /app
+      - ./db.sqlite3:/app/db.sqlite3  # Монтирование файла базы данных
     environment:
       - PYTHONUNBUFFERED=1
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Основной конфиг Nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d  # Дополнительные конфигурации
+    depends_on:
+      - web
